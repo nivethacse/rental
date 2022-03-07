@@ -20,6 +20,7 @@ db.connect();
 
 app.use(express.json());
 
+app.get("", (req, res) => res.send("Working"));
 // endPoint for verifying user email
 app.use("/verify", verifyRoute);
 
