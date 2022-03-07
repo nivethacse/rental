@@ -14,74 +14,70 @@ const sortServices = require("./routes/sortService");
 
 const Port = process.env.PORT || 3001;
 
-async function connection() {
-  app.use(cors());
+app.use(cors());
 
-  await db.connect();
+await db.connect();
 
-  app.use(express.json());
+app.use(express.json());
 
-  // endPoint for verifying user email
-  app.use("/verify", verifyRoute);
+// endPoint for verifying user email
+app.use("/verify", verifyRoute);
 
-  // endPoint for user login flow and registeration
-  app.use("/user", userRoutes);
+// endPoint for user login flow and registeration
+app.use("/user", userRoutes);
 
-  app.put("/reset", forgetService.reset);
+app.put("/reset", forgetService.reset);
 
-  // endpoint for password update
-  app.put("/updatePassword", forgetService.updatePassword);
+// endpoint for password update
+app.put("/updatePassword", forgetService.updatePassword);
 
-  // bike info
-  app.get("/bike", bikeservice.bike);
+// bike info
+app.get("/bike", bikeservice.bike);
 
-  // sortind data
-  app.use("/sort", sortServices);
-  // authorization middleware
-  app.use((req, res, next) => {
-    const token = req.headers["auth-token"];
+// sortind data
+app.use("/sort", sortServices);
+// authorization middleware
+app.use((req, res, next) => {
+  const token = req.headers["auth-token"];
 
-    if (token) {
-      try {
-        req.user = jwt.verify(token, "admin123");
-
-        next();
-      } catch (error) {
-        res.sendStatus(500);
-      }
-    } else {
-      res.sendStatus(401);
-    }
-  });
-
-  // booking bike
-  app.post("/booking", bikeservice.bookBike);
-
-  // deleting or cancelling the booking
-  app.put("/deleteBooking", async (req, res) => {
+  if (token) {
     try {
-      const data = await db.rentalData.findOneAndUpdate(
-        { _id: ObjectId(req.body._id) },
-        { $pull: { booking: { bookId: ObjectId(req.body.bookId) } } },
-        { returnDocument: "after" }
-      );
-      res.send(data.value);
+      req.user = jwt.verify(token, "admin123");
+
+      next();
     } catch (error) {
-      console.log(error);
+      res.sendStatus(500);
     }
-  });
-
-  if (process.env.NODE_ENV === "production") {
-    app.use(express.static("client/build"));
-    const path = require("path");
-    app.get("*", (req, res) => {
-      res.sendFile(path.resolve(__dirname, "client", "build", "index.html"));
-    });
+  } else {
+    res.sendStatus(401);
   }
+});
 
-  app.listen(Port, () => {
-    console.log("your server startd at", Port);
+// booking bike
+app.post("/booking", bikeservice.bookBike);
+
+// deleting or cancelling the booking
+app.put("/deleteBooking", async (req, res) => {
+  try {
+    const data = await db.rentalData.findOneAndUpdate(
+      { _id: ObjectId(req.body._id) },
+      { $pull: { booking: { bookId: ObjectId(req.body.bookId) } } },
+      { returnDocument: "after" }
+    );
+    res.send(data.value);
+  } catch (error) {
+    console.log(error);
+  }
+});
+
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static("client/build"));
+  const path = require("path");
+  app.get("*", (req, res) => {
+    res.sendFile(path.resolve(__dirname, "client", "build", "index.html"));
   });
 }
 
-connection();
+app.listen(Port, () => {
+  console.log("your server startd at", Port);
+});
